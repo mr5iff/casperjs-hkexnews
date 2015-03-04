@@ -1,0 +1,5 @@
+node_modules
+src/download
+errorLog
+output
+*.png

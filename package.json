@@ -1,0 +1,15 @@
+{
+  "name": "hkexnews",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "mr5iff <mr5iff@gmail.com> (https://github.com/mr5iff)",
+  "license": "ISC",
+  "dependencies": {
+    "casperjs": "^1.1.0-beta3",
+    "commander": "^2.6.0"
+  }
+}
