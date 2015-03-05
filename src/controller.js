@@ -36,11 +36,18 @@ function main(criteria) {
         allData.metadata.complete = true;
         writeData();
 
+        //do the process again for the last period
+        
+        criteria = shiftCriteriaMonth(criteria);
+        this.log('finished 1 round!', 'info');
+        require('utils').dump(criteria);
+        casper.open(baseUrl + advSearchUrl).then(newSearch);
+
         // hack for removing the error message:
         // 'Unsafe JavaScript attempt to access frame with URL about:blank from frame with URL file:///usr/local/lib/node_modules/casperjs/bin/bootstrap.js. Domains, protocols and ports must match.'
-        setTimeout(function() {
-        	casper.exit();
-        }, 0);
+        // setTimeout(function() {
+        // 	casper.exit();
+        // }, 0);
 
         //hack
 
@@ -69,7 +76,9 @@ function main(criteria) {
         writeData();
     });
 
-    casper.start(baseUrl + advSearchUrl, function() {
+    casper.start(baseUrl + advSearchUrl, newSearch);
+
+    function newSearch(){
         inputSearchCriteria.call(this, criteria);
         submitForm.call(this);
         this.waitForSelector(pageCountSelector, function() {
@@ -79,7 +88,7 @@ function main(criteria) {
         });
         // _downloadFiles.call(this, getFileLinks.call(this));
         // downloadAllFiles.call(this);
-    });
+    }
 
     function writeData() {
         fs.write(outputPath + filename, JSON.stringify(allData), 'w');
@@ -94,15 +103,52 @@ function main(criteria) {
 
 }
 
-var init_criteria = {
-	startDate_day : '02',
-    startDate_month : '09',
-    startDate_year : '2013',
-    endDate_day : '01',
-    endDate_month : '10',
-    endDate_year : '2013'
-};
+
+function hkexCriteria(criteria){
+    return{
+        startDate_day : convertNumToStr(criteria.startDate.getDate()+1),
+        startDate_month : convertNumToStr(criteria.startDate.getMonth()+1),
+        startDate_year : criteria.startDate.getFullYear()+'',
+        endDate_day : convertNumToStr(criteria.endDate.getDate()+1),
+        endDate_month : convertNumToStr(criteria.endDate.getMonth()+1),
+        endDate_year : criteria.endDate.getFullYear()+''
+    };
+}
+
+function newCriteria(startDate, endDate){
+    if (startDate)
+        var _startDate = new Date(startDate);
+    else
+        var _startDate = new Date();
+
+    if (endDate)
+        var _endDate = new Date(endDate);
+    else{
+        var _endDate = new Date(_startDate.getTime());
+        _endDate.setMonth(_endDate.getMonth()+1);
+    }
+
+    // }
+    return {
+        startDate: _startDate,
+        endDate: _endDate
+    };
+}
+
+function shiftCriteriaMonth(criteria){
+    criteria.endDate.setMonth(criteria.endDate.getMonth()-1);
+    criteria.startDate.setMonth(criteria.startDate.getMonth()-1);
+    return criteria;
+}
+
+var init_criteria = newCriteria("09/02/2013");
 main(init_criteria);
+
+//test
+// for (var i = 0;i<20; i++){
+//     require('utils').dump(hkexCriteria(init_criteria));
+//     init_criteria = shiftCriteriaMonth(init_criteria);
+// }
 
 function outputFilename() {
     // var currentTime = new Date();
@@ -119,36 +165,14 @@ function submitForm() {
     });
 }
 
-function shiftCriteriaMonth(criteria){
-	var new_criteria = {};
-	new_criteria.startDate_day = criteria.startDate_day;
-	new_criteria.endDate_day = criteria.endDate_day;
 
-	if (criteria.startDate_month === '01'){
-		new_criteria.startDate_month = '12';
-		new_criteria.startDate_year = convertToStrMonth(parseInt(criteria.endDate_year)-1);
-	} else {
-		new_criteria.startDate_month = parseInt(criteria.startDate_month)-1;
-		new_criteria.startDate_year = criteria.endDate_year;
-	}
 
-	if (criteria.endDate_month === '01'){
-		new_criteria.endDate_month = '12';
-		new_criteria.endDate_year = convertToStrMonth(parseInt(criteria.endDate_year)-1);
-	} else {
-		new_criteria.endDate_month = parseInt(criteria.endDate_month)-1;
-		new_criteria.endDate_year = criteria.endDate_year;
-	}
-
-	return new_criteria;
-}
-
-function convertToStrMonth(int){
-	return int<10 ? '0'+''+int : ''+int;
+function convertNumToStr(i){
+	return i<10 ? '0'+''+i : ''+i;
 }
 
 function inputSearchCriteria(criteria) {
-	var criteria = criteria || {};
+	var criteria = hkexCriteria(criteria) || {};
     // var datePeriodType = criteria.datePeriodType || 'rbManualRange';
     var datePeriodType = 'rbManualRange';
     var startDate_day = criteria.startDate_day || '02';
