@@ -20,24 +20,35 @@ function main(criteria) {
             writeData();
         }
     };
-    var filename = outputFilename();
+    var defaultFilename = outputFilename();
 
     var casper = require('casper').create(options);
 
     var stockCode, stockName, headlineCategoryAndDocType, headlineCategory, documentType, newsTitle, dateOfRelease;
 
 
-    var allData = {
-        // metadata:{},
-        pages: []
-    };
+    var allData = newSearchData();
+
+    casper.on('url.changed', function(url) {
+        if (/exception/i.test(url)) {
+            this.back();
+            this.then(function() {
+                this.waitForSelector('#ctl00_gvMain_ctl01_btnNext', function() {
+                    nextPage.call(this);
+                });
+            })
+            this.then(function() {
+                getRowInfo.call(this, allData);
+            });
+        }
+    });
 
     casper.on('done', function() {
         allData.metadata.complete = true;
         writeData();
 
         //do the process again for the last period
-        
+
         criteria = shiftCriteriaMonth(criteria);
         this.log('finished 1 round!', 'info');
         require('utils').dump(criteria);
@@ -46,7 +57,7 @@ function main(criteria) {
         // hack for removing the error message:
         // 'Unsafe JavaScript attempt to access frame with URL about:blank from frame with URL file:///usr/local/lib/node_modules/casperjs/bin/bootstrap.js. Domains, protocols and ports must match.'
         // setTimeout(function() {
-        // 	casper.exit();
+        //  casper.exit();
         // }, 0);
 
         //hack
@@ -58,10 +69,6 @@ function main(criteria) {
         //     allData.metadata.complete = false;
         //     getRowInfo.call(this, allData);
         // });
-    });
-
-    casper.on('error', function() {
-        writeData();
     });
 
     casper.on('waitFor.timeout', function() {
@@ -78,7 +85,21 @@ function main(criteria) {
 
     casper.start(baseUrl + advSearchUrl, newSearch);
 
-    function newSearch(){
+    function newFilename() {
+        defaultFilename = outputFilename();
+        return defaultFilename;
+    }
+
+    function newSearchData() {
+        return {
+            pages: []
+        };
+    }
+
+    function newSearch() {
+        allData = newSearchData();
+        newFilename();
+
         inputSearchCriteria.call(this, criteria);
         submitForm.call(this);
         this.waitForSelector(pageCountSelector, function() {
@@ -90,32 +111,29 @@ function main(criteria) {
         // downloadAllFiles.call(this);
     }
 
-    function writeData() {
-        fs.write(outputPath + filename, JSON.stringify(allData), 'w');
+    function writeData(data, filename) {
+        var _filename = filename || defaultFilename;
+        var _data = data || allData;
+        fs.write(outputPath + _filename, JSON.stringify(_data), 'w');
     }
 
-    casper.run(function() {
-        // writeData();
-        // console.log(this.getCurrentUrl());
-        // require('utils').dump(pageRecord.call(this));
-        // downloadFiles.call(this, getFileLinks.call(this));
-    });
+    casper.run(function() {});
 
 }
 
 
-function hkexCriteria(criteria){
-    return{
-        startDate_day : convertNumToStr(criteria.startDate.getDate()+1),
-        startDate_month : convertNumToStr(criteria.startDate.getMonth()+1),
-        startDate_year : criteria.startDate.getFullYear()+'',
-        endDate_day : convertNumToStr(criteria.endDate.getDate()+1),
-        endDate_month : convertNumToStr(criteria.endDate.getMonth()+1),
-        endDate_year : criteria.endDate.getFullYear()+''
+function hkexCriteria(criteria) {
+    return {
+        startDate_day: convertNumToStr(criteria.startDate.getDate() + 1),
+        startDate_month: convertNumToStr(criteria.startDate.getMonth() + 1),
+        startDate_year: criteria.startDate.getFullYear() + '',
+        endDate_day: convertNumToStr(criteria.endDate.getDate() + 1),
+        endDate_month: convertNumToStr(criteria.endDate.getMonth() + 1),
+        endDate_year: criteria.endDate.getFullYear() + ''
     };
 }
 
-function newCriteria(startDate, endDate){
+function newCriteria(startDate, endDate) {
     if (startDate)
         var _startDate = new Date(startDate);
     else
@@ -123,9 +141,9 @@ function newCriteria(startDate, endDate){
 
     if (endDate)
         var _endDate = new Date(endDate);
-    else{
+    else {
         var _endDate = new Date(_startDate.getTime());
-        _endDate.setMonth(_endDate.getMonth()+1);
+        _endDate.setMonth(_endDate.getMonth() + 1);
     }
 
     // }
@@ -135,9 +153,9 @@ function newCriteria(startDate, endDate){
     };
 }
 
-function shiftCriteriaMonth(criteria){
-    criteria.endDate.setMonth(criteria.endDate.getMonth()-1);
-    criteria.startDate.setMonth(criteria.startDate.getMonth()-1);
+function shiftCriteriaMonth(criteria) {
+    criteria.endDate.setMonth(criteria.endDate.getMonth() - 1);
+    criteria.startDate.setMonth(criteria.startDate.getMonth() - 1);
     return criteria;
 }
 
@@ -167,12 +185,12 @@ function submitForm() {
 
 
 
-function convertNumToStr(i){
-	return i<10 ? '0'+''+i : ''+i;
+function convertNumToStr(i) {
+    return i < 10 ? '0' + '' + i : '' + i;
 }
 
 function inputSearchCriteria(criteria) {
-	var criteria = hkexCriteria(criteria) || {};
+    var criteria = hkexCriteria(criteria) || {};
     // var datePeriodType = criteria.datePeriodType || 'rbManualRange';
     var datePeriodType = 'rbManualRange';
     var startDate_day = criteria.startDate_day || '02';
@@ -199,7 +217,7 @@ function inputSearchCriteria(criteria) {
 
 
     // this.fill('form#aspnetForm', {
-    // 	'ctl00$txt_stock_code': stockCode, 
+    //  'ctl00$txt_stock_code': stockCode, 
     //        'ctl00$txt_stock_name': stockName,
 
 
@@ -239,22 +257,22 @@ function inputSearchCriteria(criteria) {
     // ctl00_rbAfter2006
     // ctl00_sel_tier_1
     // // <select name="ctl00$sel_tier_1" id="ctl00_sel_tier_1" class="arial12black" onchange="ResetDocTypePrior2006(); OnSetTierOne()">
-    // // 	<option value="-2">ALL</option>
-    // // 	<option value="1">Announcements and Notices</option>
-    // // 	<option value="2">Circulars</option>
-    // // 	<option value="3">Listing Documents</option>
-    // // 	<option value="4">Financial Statements/ESG Information</option>
-    // // 	<option value="13">Next Day Disclosure Returns</option>
-    // // 	<option value="14">Monthly Returns</option>
-    // // 	<option value="7">Proxy Forms</option>
-    // // 	<option value="11">Company Information Sheet (GEM)</option>
-    // // 	<option value="12">Constitutional Documents</option>
-    // // 	<option value="5">Debt and Structured Products</option>
-    // // 	<option value="9">Trading Information of Exchange Traded Funds</option>
-    // // 	<option value="8">Regulatory Announcement &amp; News</option>
-    // // 	<option value="10">Share Buyback Reports (Before 1 January 2009)</option>
-    // // 	<option value="15">Takeovers Code - dealing disclosures</option>
-    // // 	<option value="16">Application Proofs and Post Hearing Information Packs or PHIPs</option>
+    // //   <option value="-2">ALL</option>
+    // //   <option value="1">Announcements and Notices</option>
+    // //   <option value="2">Circulars</option>
+    // //   <option value="3">Listing Documents</option>
+    // //   <option value="4">Financial Statements/ESG Information</option>
+    // //   <option value="13">Next Day Disclosure Returns</option>
+    // //   <option value="14">Monthly Returns</option>
+    // //   <option value="7">Proxy Forms</option>
+    // //   <option value="11">Company Information Sheet (GEM)</option>
+    // //   <option value="12">Constitutional Documents</option>
+    // //   <option value="5">Debt and Structured Products</option>
+    // //   <option value="9">Trading Information of Exchange Traded Funds</option>
+    // //   <option value="8">Regulatory Announcement &amp; News</option>
+    // //   <option value="10">Share Buyback Reports (Before 1 January 2009)</option>
+    // //   <option value="15">Takeovers Code - dealing disclosures</option>
+    // //   <option value="16">Application Proofs and Post Hearing Information Packs or PHIPs</option>
 
     // // </select>
 
@@ -262,24 +280,24 @@ function inputSearchCriteria(criteria) {
     // ctl00_rbPrior2006
     // ctl00_sel_DocTypePrior2006
     // // <select name="ctl00$sel_DocTypePrior2006" id="ctl00_sel_DocTypePrior2006" class="arial12black" onchange="Javascript: ResetDocTypeAfter2006(); rbPrior2006.checked = true;">
-    // // 	<option value="-1">ALL</option>
-    // // 	<option value="10000"> Announcement</option>
-    // // 	<option value="10500"> IPO Allotment Results</option>
-    // // 	<option value="11000"> Results Announcement</option>
-    // // 	<option value="11500"> Financial Statements</option>
-    // // 	<option value="12000"> Securities Buyback</option>
-    // // 	<option value="13000"> Information Table</option>
-    // // 	<option value="14000"> Trading Arrangement</option>
-    // // 	<option value="15100"> Changes in Directorships</option>
-    // // 	<option value="15200"> Notices of General Meetings</option>
-    // // 	<option value="15250"> Proxy Form</option>
-    // // 	<option value="15300"> Results of General Meetings</option>
-    // // 	<option value="15500"> Company Profile (GEM only)</option>
-    // // 	<option value="16000"> Others</option>
-    // // 	<option value="17000"> EFN - Tender Notice</option>
-    // // 	<option value="18000"> Circulars</option>
-    // // 	<option value="19000"> Prospectuses</option>
-    // // 	<option value="19100"> Base Listing Document</option>
+    // //   <option value="-1">ALL</option>
+    // //   <option value="10000"> Announcement</option>
+    // //   <option value="10500"> IPO Allotment Results</option>
+    // //   <option value="11000"> Results Announcement</option>
+    // //   <option value="11500"> Financial Statements</option>
+    // //   <option value="12000"> Securities Buyback</option>
+    // //   <option value="13000"> Information Table</option>
+    // //   <option value="14000"> Trading Arrangement</option>
+    // //   <option value="15100"> Changes in Directorships</option>
+    // //   <option value="15200"> Notices of General Meetings</option>
+    // //   <option value="15250"> Proxy Form</option>
+    // //   <option value="15300"> Results of General Meetings</option>
+    // //   <option value="15500"> Company Profile (GEM only)</option>
+    // //   <option value="16000"> Others</option>
+    // //   <option value="17000"> EFN - Tender Notice</option>
+    // //   <option value="18000"> Circulars</option>
+    // //   <option value="19000"> Prospectuses</option>
+    // //   <option value="19100"> Base Listing Document</option>
 
     // // </select>
 
@@ -304,11 +322,11 @@ function inputSearchCriteria(criteria) {
     // ctl00_rbDefaultRange
     // ctl00_sel_defaultDateRange
     // // <select name="ctl00$sel_defaultDateRange" id="ctl00_sel_defaultDateRange" class="arial12black" onchange="Javascript:rbDefaultRange.checked=true;">
-    // // 	<option selected="selected" value="SevenDays">Last 7 days</option>
-    // // 	<option value="Month">Last month</option>
-    // // 	<option value="ThreeMonth">Last 3 months</option>
-    // // 	<option value="SixMonth">Last 6 months</option>
-    // // 	<option value="Year">Last 12 months</option>
+    // //   <option selected="selected" value="SevenDays">Last 7 days</option>
+    // //   <option value="Month">Last month</option>
+    // //   <option value="ThreeMonth">Last 3 months</option>
+    // //   <option value="SixMonth">Last 6 months</option>
+    // //   <option value="Year">Last 12 months</option>
 
     // // </select>
 
@@ -326,15 +344,18 @@ function getRowInfo(allData) {
     // require('utils').dump(allData);
     this.emit('page.read');
     this.log(getProgress.call(this));
-    nextPage.call(this);
+    this.waitForSelector('#ctl00_gvMain_ctl01_btnNext', function() {
+        nextPage.call(this);
+    });
+
     this.waitForSelectorTextChange(pageCountSelector, function() {
 
         var _pageRecord = pageRecord.call(this);
         if (_pageRecord.end != _pageRecord.total) {
             getRowInfo.call(this, allData);
         } else {
-        	allData.pages.push(getPageRows.call(this));
-        	this.log(getProgress.call(this));
+            allData.pages.push(getPageRows.call(this));
+            this.log(getProgress.call(this));
             this.echo('getRowInfo() completed');
             this.emit('done');
             // this.exit();
@@ -343,24 +364,24 @@ function getRowInfo(allData) {
 }
 
 // function getRowInfo(allData){
-// 	this.waitForSelector(pageCountSelector, function() {
-// 		allData.pages.push(getPageRows.call(this));
-// 			// require('utils').dump(allData);
-// 			this.emit('page.read');
-// 			this.log(getProgress.call(this));
-// 		this.waitForSelectorTextChange(pageCountSelector, function () {
+//  this.waitForSelector(pageCountSelector, function() {
+//      allData.pages.push(getPageRows.call(this));
+//          // require('utils').dump(allData);
+//          this.emit('page.read');
+//          this.log(getProgress.call(this));
+//      this.waitForSelectorTextChange(pageCountSelector, function () {
 
-// 			var _pageRecord = pageRecord.call(this);
-// 			if (_pageRecord.end != _pageRecord.total){
-// 				nextPage.call(this);
-// 				getRowInfo.call(this,allData);
-// 			}
-// 			else{
-// 				this.echo('getRowInfo() completed');
-// 				this.exit();
-// 			}
-// 		});
-// 	});
+//          var _pageRecord = pageRecord.call(this);
+//          if (_pageRecord.end != _pageRecord.total){
+//              nextPage.call(this);
+//              getRowInfo.call(this,allData);
+//          }
+//          else{
+//              this.echo('getRowInfo() completed');
+//              this.exit();
+//          }
+//      });
+//  });
 // }
 
 function downloadAllFiles() {
@@ -398,8 +419,8 @@ function pageRecord() {
     return parse_progress(sentence);
 }
 
-function parse_progress(sentence){
-	var numberArr = sentence.match(/\d+/g);
+function parse_progress(sentence) {
+    var numberArr = sentence.match(/\d+/g);
     // this.log('working on: ' + sentence, 'info');
     return {
         sentence: sentence,
@@ -442,7 +463,7 @@ function getPageRows() {
     var sentence = this.fetchText('#ctl00_gvMain_ctl01_lbPageCount');
     var progress = parse_progress(sentence);
     require('utils').dump(progress);
-    for (var i = 3; i <= progress.end-progress.start+ 3; ++i) {
+    for (var i = 3; i <= progress.end - progress.start + 3; ++i) {
         var i_str = i < 10 ? '0' + '' + i : i; // range: 3 to 22
         var dateTime = this.getHTML('#ctl00_gvMain_ctl' + i_str + '_lbDateTime').split(/\<br\>/ig);
         var date = dateTime[0];
