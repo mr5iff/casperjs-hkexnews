@@ -9,6 +9,7 @@
   "author": "mr5iff <mr5iff@gmail.com> (https://github.com/mr5iff)",
   "license": "MIT",
   "dependencies": {
-    "casperjs": "^1.1.0-beta3"
+    "casperjs": "^1.1.0-beta3",
+    "jquery": "^2.1.3"
   }
 }

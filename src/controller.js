@@ -1,12 +1,19 @@
 'use strict';
 var baseUrl = 'http://www.hkexnews.hk';
+var advSearchUrlPart = '/listedco/listconews/advancedsearch';
 var advSearchUrl = '/listedco/listconews/advancedsearch/search_active_main.aspx';
 var downloadPath = './download/';
-var outputPath = './output/';
+var outputPath = './output_20150318/';
+var __utils__ = require('utils');
 // var outputFilename = 'output.json';
 
 var pageCountSelector = '#ctl00_gvMain_ctl01_lbPageCount';
 var fs = require('fs');
+
+// setting start date
+var init_criteria = newCriteria("02/18/2015", "03/18/2015");
+
+main(init_criteria);
 
 function main(criteria) {
     var options = {
@@ -19,6 +26,7 @@ function main(criteria) {
         onDie: function() {
             writeData();
         }
+        // ,clientScripts: ['../node_modules/src/jquery.js']
     };
     var defaultFilename = outputFilename();
 
@@ -36,7 +44,7 @@ function main(criteria) {
                 this.waitForSelector('#ctl00_gvMain_ctl01_btnNext', function() {
                     nextPage.call(this);
                 });
-            })
+            });
             this.then(function() {
                 getRowInfo.call(this, allData);
             });
@@ -51,7 +59,7 @@ function main(criteria) {
 
         criteria = shiftCriteriaMonth(criteria);
         this.log('finished 1 round!', 'info');
-        require('utils').dump(criteria);
+        __utils__.dump(criteria);
         casper.open(baseUrl + advSearchUrl).then(newSearch);
 
         // hack for removing the error message:
@@ -114,6 +122,7 @@ function main(criteria) {
     function writeData(data, filename) {
         var _filename = filename || defaultFilename;
         var _data = data || allData;
+
         fs.write(outputPath + _filename, JSON.stringify(_data), 'w');
     }
 
@@ -124,10 +133,10 @@ function main(criteria) {
 
 function hkexCriteria(criteria) {
     return {
-        startDate_day: convertNumToStr(criteria.startDate.getDate() + 1),
+        startDate_day: convertNumToStr(criteria.startDate.getDate()),
         startDate_month: convertNumToStr(criteria.startDate.getMonth() + 1),
         startDate_year: criteria.startDate.getFullYear() + '',
-        endDate_day: convertNumToStr(criteria.endDate.getDate() + 1),
+        endDate_day: convertNumToStr(criteria.endDate.getDate()),
         endDate_month: convertNumToStr(criteria.endDate.getMonth() + 1),
         endDate_year: criteria.endDate.getFullYear() + ''
     };
@@ -159,12 +168,9 @@ function shiftCriteriaMonth(criteria) {
     return criteria;
 }
 
-var init_criteria = newCriteria("09/02/2013");
-main(init_criteria);
-
 //test
 // for (var i = 0;i<20; i++){
-//     require('utils').dump(hkexCriteria(init_criteria));
+//     __utils__.dump(hkexCriteria(init_criteria));
 //     init_criteria = shiftCriteriaMonth(init_criteria);
 // }
 
@@ -341,7 +347,7 @@ function inputSearchCriteria(criteria) {
 function getRowInfo(allData) {
 
     allData.pages.push(getPageRows.call(this));
-    // require('utils').dump(allData);
+    // __utils__.dump(allData);
     this.emit('page.read');
     this.log(getProgress.call(this));
     this.waitForSelector('#ctl00_gvMain_ctl01_btnNext', function() {
@@ -349,24 +355,28 @@ function getRowInfo(allData) {
     });
 
     this.waitForSelectorTextChange(pageCountSelector, function() {
-
-        var _pageRecord = pageRecord.call(this);
-        if (_pageRecord.end != _pageRecord.total) {
-            getRowInfo.call(this, allData);
-        } else {
-            allData.pages.push(getPageRows.call(this));
-            this.log(getProgress.call(this));
-            this.echo('getRowInfo() completed');
-            this.emit('done');
-            // this.exit();
-        }
+        this.waitFor(function check() {
+            return this.fetchText(pageCountSelector).length > 0;
+        }, function then() {
+            var _pageRecord = pageRecord.call(this);
+            if (_pageRecord.end != _pageRecord.total) {
+                getRowInfo.call(this, allData);
+            } else {
+                allData.pages.push(getPageRows.call(this));
+                this.log(getProgress.call(this));
+                this.echo('getRowInfo() completed');
+                this.emit('done');
+            }
+        }, function () {
+            console.log('timeout!!!');
+        }, 60000);
     });
 }
 
 // function getRowInfo(allData){
 //  this.waitForSelector(pageCountSelector, function() {
 //      allData.pages.push(getPageRows.call(this));
-//          // require('utils').dump(allData);
+//          // __utils__.dump(allData);
 //          this.emit('page.read');
 //          this.log(getProgress.call(this));
 //      this.waitForSelectorTextChange(pageCountSelector, function () {
@@ -394,12 +404,12 @@ function downloadAllFiles() {
         // _downloadFiles.call(this, getFileLinks.call(this));
         nextPage.call(this);
         this.waitForSelectorTextChange(pageCountSelector, function() {
-                _pageRecord = pageRecord.call(this);
-                _downloadFiles.call(this, getFileLinks.call(this));
-                downloadAllFiles.call(this);
-            })
-            // }
-            // this.log('done! ' +  _pageRecord.sentence, 'info');
+            _pageRecord = pageRecord.call(this);
+            _downloadFiles.call(this, getFileLinks.call(this));
+            downloadAllFiles.call(this);
+        });
+        // }
+        // this.log('done! ' +  _pageRecord.sentence, 'info');
     });
 }
 
@@ -459,10 +469,10 @@ function getProgress() {
 
 function getPageRows() {
     var rows = [];
-    // require('utils').dump(this.getHTML());
+    // __utils__.dump(this.getHTML());
     var sentence = this.fetchText('#ctl00_gvMain_ctl01_lbPageCount');
     var progress = parse_progress(sentence);
-    require('utils').dump(progress);
+    __utils__.dump(progress);
     for (var i = 3; i <= progress.end - progress.start + 3; ++i) {
         var i_str = i < 10 ? '0' + '' + i : i; // range: 3 to 22
         var dateTime = this.getHTML('#ctl00_gvMain_ctl' + i_str + '_lbDateTime').split(/\<br\>/ig);
@@ -472,10 +482,38 @@ function getPageRows() {
         var stockCode = this.getHTML('#ctl00_gvMain_ctl' + i_str + '_lbStockCode').split(/\<br\>/ig);
         var stockName = this.getHTML('#ctl00_gvMain_ctl' + i_str + '_lbStockName').split(/\<br\>/ig);
         var shortText = this.fetchText('#ctl00_gvMain_ctl' + i_str + '_lbShortText');
-        var title = this.fetchText('#ctl00_gvMain_ctl' + i_str + '_hlTitle');
+        var shortTextHTML = this.getHTML('#ctl00_gvMain_ctl' + i_str + '_lbShortText');
+
+        var category_level1 = /^(.*?)\s?-/.exec(shortText);
+        category_level1 = category_level1 ? category_level1[1].trim() : shortText;
+
+        var title = this.fetchText('#ctl00_gvMain_ctl' + i_str + '_hlTitle').replace(/\n/g, ' ');
         var url = this.getElementAttribute('#ctl00_gvMain_ctl' + i_str + '_hlTitle', 'href');
-        var filename = /([^\/]*)$/.exec(url)[0];
+        var fileName = /([^\/]*)$/.exec(url)[0];
         var fileInfo = this.fetchText('#ctl00_gvMain_ctl' + i_str + '_lbFileInfo');
+            fileInfo = /\((.*)\)/.exec(fileInfo)[1].trim();
+        
+        var fileSize, fileType;
+        try{
+            fileSize = /(.*)\,/.exec(fileInfo)[1].trim();
+            fileType = /\,(.*)/.exec(fileInfo)[1].trim();
+        } catch (err){
+            fileSize = fileType = NaN;
+        }
+
+        var category_level2;
+        // if (shortTextHTML.indexOf('...More') > -1) {
+        //     var moreUrl = this.getElementAttribute('#ctl00_gvMain_ctl' + i_str + '_lbShortText' + ' > a', 'href');
+        //     this.open(baseUrl + advSearchUrlPart + '/' + moreUrl, function() {
+        //         category_level2 = this.getHTML('#lblLongText');
+        //     }); 
+
+        //     //send ajax with jquery
+        // } else {
+            category_level2 = /\[(.*)\]/.exec(shortText);
+            category_level2 = (category_level2 && category_level2[1]) ? category_level2[1].split('/').map(function(d) {return d.trim();}) : NaN;
+        // }
+
 
         var row_obj = {
             i: i,
@@ -484,10 +522,14 @@ function getPageRows() {
             stockCode: stockCode,
             stockName: stockName,
             shortText: shortText,
+            category_level1: category_level1,
+            category_level2: category_level2,
             title: title,
             url: url,
-            filename: filename,
-            fileInfo: fileInfo
+            fileName: fileName,
+            fileInfo: fileInfo,
+            fileSize: fileSize,
+            fileType: fileType
         };
         rows.push(row_obj);
     }
@@ -497,7 +539,7 @@ function getPageRows() {
         rows: rows
     };
 
-    // require('utils').dump(page);
+    // __utils__.dump(page);
 
     return page;
 }
