@@ -1,36 +1,41 @@
 'use strict';
+var __utils__ = require('utils');
+var fs = require('fs');
+
+var options = {
+    verbose: true,
+    logLevel: "debug",
+    waitTimeout: 60000,
+    pageSettings: {
+        userAgent: "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36"
+    }
+    // ,onDie: function() {
+    //     writeData();
+    // }
+    // ,clientScripts: ['../node_modules/src/jquery.js']
+};
+var casper = require('casper').create(options);
+
 var baseUrl = 'http://www.hkexnews.hk';
 var advSearchUrlPart = '/listedco/listconews/advancedsearch';
 var advSearchUrl = '/listedco/listconews/advancedsearch/search_active_main.aspx';
 var downloadPath = './download/';
-var outputPath = './output_20150318/';
-var __utils__ = require('utils');
+var outputPath = casper.cli.get('outputPath') || './output_20150318/';
+var opt_startDate = casper.cli.get('startDate') || "02/18/2015";
+var opt_endDate = casper.cli.get('endDate') || "03/18/2015";
 // var outputFilename = 'output.json';
 
 var pageCountSelector = '#ctl00_gvMain_ctl01_lbPageCount';
-var fs = require('fs');
+
 
 // setting start date
-var init_criteria = newCriteria("02/18/2015", "03/18/2015");
+var init_criteria = newCriteria(opt_startDate, opt_endDate);
 
 main(init_criteria);
 
 function main(criteria) {
-    var options = {
-        verbose: true,
-        logLevel: "debug",
-        waitTimeout: 60000,
-        pageSettings: {
-            userAgent: "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36"
-        },
-        onDie: function() {
-            writeData();
-        }
-        // ,clientScripts: ['../node_modules/src/jquery.js']
-    };
     var defaultFilename = outputFilename();
 
-    var casper = require('casper').create(options);
 
     var stockCode, stockName, headlineCategoryAndDocType, headlineCategory, documentType, newsTitle, dateOfRelease;
 
