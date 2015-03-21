@@ -4,3 +4,4 @@ errorLog
 output*
 *.png
 .DS_Store
+*.html

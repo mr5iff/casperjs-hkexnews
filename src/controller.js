@@ -20,7 +20,8 @@ var baseUrl = 'http://www.hkexnews.hk';
 var advSearchUrlPart = '/listedco/listconews/advancedsearch';
 var advSearchUrl = '/listedco/listconews/advancedsearch/search_active_main.aspx';
 var downloadPath = './download/';
-var outputPath = casper.cli.get('outputPath') || './output_20150318/';
+// var startTime = new Date();
+var outputPath = casper.cli.get('outputPath') || './output_' + '20150319' +'/';
 var opt_startDate = casper.cli.get('startDate') || "02/18/2015";
 var opt_endDate = casper.cli.get('endDate') || "03/18/2015";
 // var outputFilename = 'output.json';
@@ -59,8 +60,8 @@ function main(criteria) {
     casper.on('done', function() {
         allData.metadata.complete = true;
         writeData();
-
         //do the process again for the last period
+        allData.metadata.complete = false;
 
         criteria = shiftCriteriaMonth(criteria);
         this.log('finished 1 round!', 'info');
@@ -93,7 +94,8 @@ function main(criteria) {
     });
 
     casper.on('page.read', function() {
-        writeData();
+        console.log('page read');
+        // writeData();
     });
 
     casper.start(baseUrl + advSearchUrl, newSearch);
