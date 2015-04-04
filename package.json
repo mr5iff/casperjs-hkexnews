@@ -1,7 +1,14 @@
 {
-  "name": "hkexnews",
-  "version": "1.0.0",
+  "name": "casper-hkexnews",
+  "version": "0.0.1",
   "description": "",
+  "keywords": [
+    "casperjs",
+    "finance",
+    "json",
+    "javascript",
+    "scraping"
+  ],
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,7 +16,11 @@
   "author": "mr5iff <mr5iff@gmail.com> (https://github.com/mr5iff)",
   "license": "MIT",
   "dependencies": {
-    "casperjs": "^1.1.0-beta3",
-    "jquery": "^2.1.3"
+    "phantomjs": ">=1.8.2",
+    "casperjs": "^1.1.0-beta3"
+  },
+  "repository" :
+  { "type" : "git"
+  , "url" : "https://github.com/mr5iff/casperjs-hkexnews"
   }
 }

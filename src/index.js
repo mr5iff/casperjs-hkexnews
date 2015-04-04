@@ -14,16 +14,38 @@ var options = {
     // }
     // ,clientScripts: ['../node_modules/src/jquery.js']
 };
+
+function formatDate(date){
+    var dd =date.getDate();
+    var MM = convertNumToStr(date.getMonth()+1);
+    var yyyy = date.getFullYear();
+    return {
+        dd: dd,
+        MM: MM,
+        yyyy: yyyy,
+        yyyyMMdd: yyyy + '' + MM + '' + dd
+    };
+}
+
 var casper = require('casper').create(options);
 
 var baseUrl = 'http://www.hkexnews.hk';
 var advSearchUrlPart = '/listedco/listconews/advancedsearch';
 var advSearchUrl = '/listedco/listconews/advancedsearch/search_active_main.aspx';
 var downloadPath = './download/';
-// var startTime = new Date();
-var outputPath = casper.cli.get('outputPath') || './output_' + '20150319' +'/';
-var opt_startDate = casper.cli.get('startDate') || "02/18/2015";
-var opt_endDate = casper.cli.get('endDate') || "03/18/2015";
+var _startTime = new Date();
+var startTime = formatDate(_startTime);
+var outputPath = casper.cli.get('outputPath') || startTime.yyyyMMdd +'/';
+
+casper.log(outputPath);
+var opt_stopDate = casper.cli.get('stopDate') || '01/01/1999';
+
+var opt_endDate = casper.cli.get('endDate') || startTime.MM + '/' + startTime.dd + '/' + startTime.yyyy ;
+var opt_startDate = casper.cli.get('startDate') || formatDate(Date(_startTime.setMonth(_startTime.getMonth()-1))).MM + '/' + startTime.dd + '/' + startTime.yyyy ;
+
+casper.log(opt_endDate);
+casper.log(opt_startDate);
+
 // var outputFilename = 'output.json';
 
 var pageCountSelector = '#ctl00_gvMain_ctl01_lbPageCount';
@@ -67,22 +89,6 @@ function main(criteria) {
         this.log('finished 1 round!', 'info');
         __utils__.dump(criteria);
         casper.open(baseUrl + advSearchUrl).then(newSearch);
-
-        // hack for removing the error message:
-        // 'Unsafe JavaScript attempt to access frame with URL about:blank from frame with URL file:///usr/local/lib/node_modules/casperjs/bin/bootstrap.js. Domains, protocols and ports must match.'
-        // setTimeout(function() {
-        //  casper.exit();
-        // }, 0);
-
-        //hack
-
-        // inputSearchCriteria.call(this, shiftCriteriaMonth(criteria));
-        // submitForm.call(this);
-        // this.waitForSelector(pageCountSelector, function() {
-        //     allData.metadata = getSearchInfo.call(this);
-        //     allData.metadata.complete = false;
-        //     getRowInfo.call(this, allData);
-        // });
     });
 
     casper.on('waitFor.timeout', function() {
@@ -175,18 +181,7 @@ function shiftCriteriaMonth(criteria) {
     return criteria;
 }
 
-//test
-// for (var i = 0;i<20; i++){
-//     __utils__.dump(hkexCriteria(init_criteria));
-//     init_criteria = shiftCriteriaMonth(init_criteria);
-// }
-
 function outputFilename() {
-    // var currentTime = new Date();
-    // var month = currentTime.getMonth() + 1;
-    // var day = currentTime.getDate();
-    // var year = currentTime.getFullYear();
-    // return "data-"+year + month + day+".txt";
     return 'data-' + (Date.now() / 1000 | 0) + '.txt';
 }
 
@@ -257,104 +252,11 @@ function inputSearchCriteria(criteria) {
     //        'ctl00$rdo_SelectSortBy': sortBy // rbDateTime | rbStockCode | rbStockName
 
     //    }, true);
-
-
-    // ctl00_txt_stock_code
-    // ctl00_txt_stock_name
-
-    // // Headline Category and Document Type
-    // // 1. All
-    // ctl00_rbAll
-
-    // // 2. Headline Category (For documents since 25 June 2007)  
-    // ctl00_rbAfter2006
-    // ctl00_sel_tier_1
-    // // <select name="ctl00$sel_tier_1" id="ctl00_sel_tier_1" class="arial12black" onchange="ResetDocTypePrior2006(); OnSetTierOne()">
-    // //   <option value="-2">ALL</option>
-    // //   <option value="1">Announcements and Notices</option>
-    // //   <option value="2">Circulars</option>
-    // //   <option value="3">Listing Documents</option>
-    // //   <option value="4">Financial Statements/ESG Information</option>
-    // //   <option value="13">Next Day Disclosure Returns</option>
-    // //   <option value="14">Monthly Returns</option>
-    // //   <option value="7">Proxy Forms</option>
-    // //   <option value="11">Company Information Sheet (GEM)</option>
-    // //   <option value="12">Constitutional Documents</option>
-    // //   <option value="5">Debt and Structured Products</option>
-    // //   <option value="9">Trading Information of Exchange Traded Funds</option>
-    // //   <option value="8">Regulatory Announcement &amp; News</option>
-    // //   <option value="10">Share Buyback Reports (Before 1 January 2009)</option>
-    // //   <option value="15">Takeovers Code - dealing disclosures</option>
-    // //   <option value="16">Application Proofs and Post Hearing Information Packs or PHIPs</option>
-
-    // // </select>
-
-    // // 3. Document Type (For documents prior to 25 June 2007)
-    // ctl00_rbPrior2006
-    // ctl00_sel_DocTypePrior2006
-    // // <select name="ctl00$sel_DocTypePrior2006" id="ctl00_sel_DocTypePrior2006" class="arial12black" onchange="Javascript: ResetDocTypeAfter2006(); rbPrior2006.checked = true;">
-    // //   <option value="-1">ALL</option>
-    // //   <option value="10000"> Announcement</option>
-    // //   <option value="10500"> IPO Allotment Results</option>
-    // //   <option value="11000"> Results Announcement</option>
-    // //   <option value="11500"> Financial Statements</option>
-    // //   <option value="12000"> Securities Buyback</option>
-    // //   <option value="13000"> Information Table</option>
-    // //   <option value="14000"> Trading Arrangement</option>
-    // //   <option value="15100"> Changes in Directorships</option>
-    // //   <option value="15200"> Notices of General Meetings</option>
-    // //   <option value="15250"> Proxy Form</option>
-    // //   <option value="15300"> Results of General Meetings</option>
-    // //   <option value="15500"> Company Profile (GEM only)</option>
-    // //   <option value="16000"> Others</option>
-    // //   <option value="17000"> EFN - Tender Notice</option>
-    // //   <option value="18000"> Circulars</option>
-    // //   <option value="19000"> Prospectuses</option>
-    // //   <option value="19100"> Base Listing Document</option>
-
-    // // </select>
-
-    // // News Title
-    // ctl00_txtKeyWord
-
-    // // Date of Release
-    // ctl00_rbManualRange
-
-    // // 1. custom period
-    // // start date
-    // ctl00_sel_DateOfReleaseFrom_d
-    // ctl00_sel_DateOfReleaseFrom_m
-    // ctl00_sel_DateOfReleaseFrom_y
-
-    // // end date
-    // ctl00_sel_DateOfReleaseTo_d
-    // ctl00_sel_DateOfReleaseTo_m
-    // ctl00_sel_DateOfReleaseTo_y
-
-    // // 2. fixed period
-    // ctl00_rbDefaultRange
-    // ctl00_sel_defaultDateRange
-    // // <select name="ctl00$sel_defaultDateRange" id="ctl00_sel_defaultDateRange" class="arial12black" onchange="Javascript:rbDefaultRange.checked=true;">
-    // //   <option selected="selected" value="SevenDays">Last 7 days</option>
-    // //   <option value="Month">Last month</option>
-    // //   <option value="ThreeMonth">Last 3 months</option>
-    // //   <option value="SixMonth">Last 6 months</option>
-    // //   <option value="Year">Last 12 months</option>
-
-    // // </select>
-
-    // // Sort by:
-    // ctl00_rbDateTime
-    // ctl00_rbStockCode
-    // ctl00_rbStockName
-
-
 }
 
 function getRowInfo(allData) {
 
     allData.pages.push(getPageRows.call(this));
-    // __utils__.dump(allData);
     this.emit('page.read');
     this.log(getProgress.call(this));
     this.waitForSelector('#ctl00_gvMain_ctl01_btnNext', function() {
@@ -380,43 +282,15 @@ function getRowInfo(allData) {
     });
 }
 
-// function getRowInfo(allData){
-//  this.waitForSelector(pageCountSelector, function() {
-//      allData.pages.push(getPageRows.call(this));
-//          // __utils__.dump(allData);
-//          this.emit('page.read');
-//          this.log(getProgress.call(this));
-//      this.waitForSelectorTextChange(pageCountSelector, function () {
-
-//          var _pageRecord = pageRecord.call(this);
-//          if (_pageRecord.end != _pageRecord.total){
-//              nextPage.call(this);
-//              getRowInfo.call(this,allData);
-//          }
-//          else{
-//              this.echo('getRowInfo() completed');
-//              this.exit();
-//          }
-//      });
-//  });
-// }
-
 function downloadAllFiles() {
     this.waitForSelector(pageCountSelector, function() {
         var _pageRecord;
-        // var _pageRecord = pageRecord.call(this);
-        // while (_pageRecord.end <= _pageRecord.total){
-        // this.log('working on: ' + _pageRecord.sentence, 'info');
-        // _downloadFiles.call(this, getFileLinks.call(this));
-        // _downloadFiles.call(this, getFileLinks.call(this));
         nextPage.call(this);
         this.waitForSelectorTextChange(pageCountSelector, function() {
             _pageRecord = pageRecord.call(this);
             _downloadFiles.call(this, getFileLinks.call(this));
             downloadAllFiles.call(this);
         });
-        // }
-        // this.log('done! ' +  _pageRecord.sentence, 'info');
     });
 }
 
@@ -438,7 +312,6 @@ function pageRecord() {
 
 function parse_progress(sentence) {
     var numberArr = sentence.match(/\d+/g);
-    // this.log('working on: ' + sentence, 'info');
     return {
         sentence: sentence,
         start: numberArr[0],
@@ -509,14 +382,6 @@ function getPageRows() {
         }
 
         var category_level2;
-        // if (shortTextHTML.indexOf('...More') > -1) {
-        //     var moreUrl = this.getElementAttribute('#ctl00_gvMain_ctl' + i_str + '_lbShortText' + ' > a', 'href');
-        //     this.open(baseUrl + advSearchUrlPart + '/' + moreUrl, function() {
-        //         category_level2 = this.getHTML('#lblLongText');
-        //     }); 
-
-        //     //send ajax with jquery
-        // } else {
             category_level2 = /\[(.*)\]/.exec(shortText);
             category_level2 = (category_level2 && category_level2[1]) ? category_level2[1].split('/').map(function(d) {return d.trim();}) : NaN;
         // }
@@ -545,8 +410,6 @@ function getPageRows() {
         progress: sentence,
         rows: rows
     };
-
-    // __utils__.dump(page);
 
     return page;
 }
